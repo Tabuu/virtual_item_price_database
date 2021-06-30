@@ -26,7 +26,7 @@ class BuffItem(Item, db.Model):
             'BuffItemValue',
             secondary=self.get_item_buff_value_association(self),
             order_by='desc(BuffItemValue.timestamp)',
-            backref='item',
+            backref='items',
             lazy='dynamic'
         )
 
@@ -70,6 +70,7 @@ class BuffItem(Item, db.Model):
 
         try:
             new_value = BuffItemValue(
+                buff_goods_id=self.buff_goods_id,
                 lowest_price=data['lowest_price'],
                 reference_price=data['reference_price']
             )
@@ -94,6 +95,7 @@ class BuffItem(Item, db.Model):
 
 
 class BuffItemValue(ItemValue, db.Model):
+    buff_goods_id = db.Column(db.Integer)
     reference_price = db.Column(db.Integer)
 
     def to_dict(self):

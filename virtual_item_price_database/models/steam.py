@@ -25,7 +25,7 @@ class SteamItem(Item, db.Model):
             'SteamItemValue',
             secondary=self.get_item_steam_value_association(self),
             order_by='desc(SteamItemValue.timestamp)',
-            backref='item',
+            backref='items',
             lazy='dynamic'
         )
 
@@ -56,6 +56,7 @@ class SteamItem(Item, db.Model):
 
         try:
             new_value = SteamItemValue(
+                steam_hash_name=self.steam_hash_name,
                 lowest_price=data['lowest_price'],
                 median_price=data['median_price'],
                 volume=data['volume']
@@ -82,6 +83,7 @@ class SteamItem(Item, db.Model):
 
 
 class SteamItemValue(ItemValue, db.Model):
+    steam_hash_name = db.Column(db.Unicode)
     median_price = db.Column(db.Integer)
     volume = db.Column(db.Integer)
 
