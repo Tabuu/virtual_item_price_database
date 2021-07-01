@@ -1,6 +1,6 @@
 import re
 
-from virtual_item_price_database import db
+from virtual_item_price_database.db import db
 from sqlalchemy.orm import declared_attr
 from datetime import datetime as dt
 
@@ -10,15 +10,14 @@ class Item(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Unicode)
 
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'name': self.name
-        }
-
     @declared_attr
     def __tablename__(self):
         return re.sub(r'(?<!^)(?=[A-Z])', '_', self.__name__).lower()
+
+    def to_dict(self):
+        return {
+            'name': self.name
+        }
 
 
 class ItemValue(db.Model):
@@ -33,7 +32,6 @@ class ItemValue(db.Model):
 
     def to_dict(self):
         return {
-            'id': self.id,
             'lowest_price': self.lowest_price,
-            'timestamp': self.timestamp
+            'timestamp': self.timestamp.__str__()
         }

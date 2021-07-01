@@ -1,11 +1,7 @@
-import json
-
-import requests
-from sqlalchemy.orm import declared_attr
-
-from virtual_item_price_database import db
-from virtual_item_price_database.models.steam import SteamItem
+import virtual_item_price_database.models.buff
+from virtual_item_price_database.db import db
 from virtual_item_price_database.models.buff import BuffItem
+from virtual_item_price_database.models.steam import SteamItem
 
 
 csgo_search_url = 'https://steamcommunity.com/market/search/render/?' \
@@ -18,52 +14,23 @@ csgo_search_url = 'https://steamcommunity.com/market/search/render/?' \
                     'norender=1'
 
 
-csgo_item_steam_value_association = db.Table(
-    'csgo_item_steam_value_association',
-    db.Model.metadata,
-    db.Column('item_id', db.Integer, db.ForeignKey('csgo_item.id')),
-    db.Column('value_id', db.Integer, db.ForeignKey('steam_item_value.id'))
-)
-
-csgo_item_buff_value_association = db.Table(
-    'csgo_item_buff_value_association',
-    db.Model.metadata,
-    db.Column('item_id', db.Integer, db.ForeignKey('csgo_item.id')),
-    db.Column('value_id', db.Integer, db.ForeignKey('buff_item_value.id'))
-)
-
-
 class CsgoItem(SteamItem, BuffItem, db.Model):
+    _steam_value_association = db.Table(
+        'csgo_item_steam_value_association',
+        db.Model.metadata,
+        db.Column('item_id', db.Integer, db.ForeignKey('csgo_item.id')),
+        db.Column('value_id', db.Integer, db.ForeignKey('steam_item_value.id'))
+    )
+
+    _buff_value_association = db.Table(
+        'csgo_item_buff_value_association',
+        db.Model.metadata,
+        db.Column('item_id', db.Integer, db.ForeignKey('csgo_item.id')),
+        db.Column('value_id', db.Integer, db.ForeignKey('buff_item_value.id'))
+    )
+
     type = db.Column(db.Unicode)
     exterior = db.Column(db.Unicode)
-
-    def get_item_steam_value_association(self):
-        return csgo_item_steam_value_association
-
-    def get_item_buff_value_association(self):
-        return csgo_item_buff_value_association
-
-    def fetch_csgo_item_metadata(self):
-        response = requests.get(csgo_search_url.format(
-            market_hash_name=self.steam_hash_name
-        ))
-        data = json.loads(response.text)
-
-        info = data['results'][0]
-
-        print(data['assets'])
-
-        # image = data['assets']['730']['2']
-        #
-        # try:
-        #     return {
-        #         'success': data['success'],
-        #         'median_price': int(float(data['median_price'][0:-1].replace(',', '.')) * 100),
-        #         'lowest_price': int(float(data['lowest_price'][0:-1].replace(',', '.')) * 100),
-        #         'volume': int(data['volume'].replace(',', ''))
-        #     }
-        # except KeyError:
-        #     return data
 
     def __init__(self, steam_hash_name, buff_goods_id, **kwargs):
         super().__init__(**kwargs)
@@ -84,3 +51,12 @@ class CsgoItem(SteamItem, BuffItem, db.Model):
 
         self.update_steam_value(steam_data)
         self.update_buff_value(buff_data)
+
+    @classmethod
+    def find_least_up_to_date_item(cls):
+        buff_item = cls.query.join(
+            cls._buff_value_association,
+            cls.id == cls._buff_value_association.c.value_id
+        ).add_columns(virtual_item_price_database.models.buff.BuffItemValue.timestamp).first()
+
+        return buff_item

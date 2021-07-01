@@ -17,5 +17,6 @@ setup(
         'flask_sqlalchemy',     # Flask version of SQLAlchemy.
         'selenium',             # Webpage renderer to scrape pages that need JavaScript rendering.
         'sqlalchemy',           # Managing the database structure, and CRUD functionality.
+        'flask_restful'
     ]
 )

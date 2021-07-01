@@ -1,12 +1,12 @@
 import re
 
-from sqlalchemy.orm import declared_attr
-
-from virtual_item_price_database import db
-from virtual_item_price_database.models.abstract import Item, ItemValue
-
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from sqlalchemy.orm import declared_attr
+
+from virtual_item_price_database.db import db
+from virtual_item_price_database.models.abstract import Item, ItemValue
+
 
 firefox_option = webdriver.FirefoxOptions()
 firefox_option.headless = False
@@ -24,14 +24,15 @@ class BuffItem(Item, db.Model):
     def buff_value_history(self):
         return db.relationship(
             'BuffItemValue',
-            secondary=self.get_item_buff_value_association(self),
+            secondary=self._buff_value_association,
             order_by='desc(BuffItemValue.timestamp)',
             backref='items',
             lazy='dynamic'
         )
 
-    def get_item_buff_value_association(self):
-        pass
+    @classmethod
+    def find_by_buff_goods_id(cls, buff_goods_id):
+        return cls.query.filter_by(buff_goods_id=buff_goods_id).first()
 
     def fetch_buff_value(self):
         driver = webdriver.Firefox(options=firefox_option)
@@ -52,7 +53,7 @@ class BuffItem(Item, db.Model):
             price_text = soup.find("table", {"class": "list_tb"}).find_all("tr")[1].find('p', {'class': 'hide-cny'})
             min_sell_price = int(float(price_text.text[3:-1]) * 100)
 
-        except Exception:
+        except KeyError:
             return None
 
         finally:
@@ -97,6 +98,10 @@ class BuffItem(Item, db.Model):
 class BuffItemValue(ItemValue, db.Model):
     buff_goods_id = db.Column(db.Integer)
     reference_price = db.Column(db.Integer)
+
+    @classmethod
+    def find_price_history_by_buff_goods_id(cls, buff_goods_id):
+        return cls.query.filter_by(buff_goods_id=buff_goods_id).all()
 
     def to_dict(self):
         return {**super().to_dict(), **{

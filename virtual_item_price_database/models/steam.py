@@ -1,10 +1,11 @@
 import json
 import requests
 
-from virtual_item_price_database import db
+from sqlalchemy.orm import declared_attr
+
+from virtual_item_price_database.db import db
 from virtual_item_price_database.models.abstract import Item, ItemValue
 
-from sqlalchemy.orm import declared_attr
 
 steam_currency_id = 3   # EUR
 
@@ -23,14 +24,11 @@ class SteamItem(Item, db.Model):
     def steam_value_history(self):
         return db.relationship(
             'SteamItemValue',
-            secondary=self.get_item_steam_value_association(self),
+            secondary=self._steam_value_association,
             order_by='desc(SteamItemValue.timestamp)',
             backref='items',
             lazy='dynamic'
         )
-
-    def get_item_steam_value_association(self):
-        pass
 
     def fetch_steam_value(self):
         response = requests.get(steam_price_overview_url.format(
